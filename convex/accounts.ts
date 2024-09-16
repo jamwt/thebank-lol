@@ -7,10 +7,18 @@ export const deposit = mutation({
     amount: v.number(),
   },
   handler: async ({ db }, { holder, amount }) => {
-    const existing = await db
+    let existing = await db
       .query("accounts")
       .withIndex("by_holder", (q) => q.eq("holder", holder))
       .first();
+
+    if (!existing) {
+      const newAccount = await db.insert("accounts", {
+        holder: holder,
+        balance: 0,
+      });
+      existing = await db.get(newAccount);
+    }
 
     await db.patch(existing!._id, {
       balance: existing!.balance + amount,
